@@ -9,9 +9,9 @@ int main(){
 	size_t r = 1;
 	size_t s = 1;
 
-	tensor::Tensor<tdtype> X(1, c, h, w, 'r');
+	tensor::Tensor<tdtype> X(2, c, h, w, 'r');
 
-	cnn::convLayer cl = cnn::convLayer<tdtype>(1,c,r,s,'s', 'f', 1);
+	cnn::convLayer cl = cnn::convLayer<tdtype>(2,c,r,s,'s', 'f', 1);
 
 	std::cout << "Displaying weights of conv layer (all channels):\n\n";
 	tdtype* weights = cl.getWeights();
