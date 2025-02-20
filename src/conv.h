@@ -94,14 +94,14 @@ namespace conv2D{
     template <typename T>
     void convolution(T*Y, T* X, T* F, int x0, int x1, int f0, int f1, char mode='s'){
         // 2D convolution function
-        void (*convFunc)(T*, T*, int, int, int, int) = convSame;
+        void (*convFunc)(T*, T*, T*, int, int, int, int) = convSame;
         if (mode=='s')
         {
-            convFunc = static_cast<void (*)(T*, T*, int, int, int, int)>(convSame<T>); 
+            convFunc = static_cast<void (*)(T*, T*, T*, int, int, int, int)>(convSame<T>); 
         }
         else if(mode=='v') 
         {
-            convFunc = static_cast<void (*)(T*, T*, int, int, int, int)>(convValid<T>);  
+            convFunc = static_cast<void (*)(T*, T*, T*, int, int, int, int)>(convValid<T>);  
         }
         else {
             std::cout<<"Input convolution mode is not supported! (Please enter s (same) or v(valid))\n";
@@ -115,7 +115,7 @@ namespace conv2D{
 namespace tensor{
 
     template<typename T>
-    T* createTensor(int N, int C, int H, int W, char state = 'z'){
+    T* createTensor(int N, int C, int H, int W, char state = 'r'){
         // create tensor of shape (N, C, H, W)
         T *tensor;
         size_t size = N*C*H*W;
@@ -190,7 +190,7 @@ namespace tensor{
                         for(int w=0; w<result.W; w++){
                             // conv adds computed values to res
                             // so output will be correct
-                            conv2D::convolution(res, mat, wmat, X.H, X.W, R, S, mode);
+                            conv2D::convolution<T>(res, mat, wmat, X.H, X.W, R, S, mode);
                         }
                     }
                 }
@@ -225,6 +225,10 @@ namespace cnn {
             ~convLayer(){
                 // destructor
                 delete weights;
+            }
+
+            T* getWeights(){
+                return weights;
             }
 
             void validateInputTensor(int xc){
