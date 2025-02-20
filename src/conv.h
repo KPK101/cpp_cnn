@@ -8,7 +8,7 @@
 #include<chrono>
 #include <cassert>
 
-
+#include<string>
 namespace matrix{
 
     template <typename T>
@@ -115,7 +115,7 @@ namespace conv2D{
 namespace tensor{
 
     template<typename T>
-    T* createTensor(int N, int C, int H, int W, char state = 'r'){
+    T* createTensor(int N, int C, int H, int W, char state = 'c', int fillval=1){
         // create tensor of shape (N, C, H, W)
         T *tensor;
         size_t size = N*C*H*W;
@@ -129,6 +129,8 @@ namespace tensor{
                 tensor[i] = std::uniform_real_distribution<T>(0,10)(gen);
             }else if (state=='z'){
                 tensor[i] = 0;
+            }else if(state=='f'){
+                tensor[i] = fillval;
             }else{
                 tensor[i] = 0;
                 std::cout << "Invalid argument - set values to zero" << std::endl;
@@ -146,13 +148,13 @@ namespace tensor{
             int N, C, H, W;
             T* data;
             
-        Tensor(int n, int c, int h, int w, int state='z') {
+        Tensor(int n, int c, int h, int w, int state='z', int fillval=1) {
             // constructor
             N = n;
             C = c;
             H = h;
             W = w;
-            data = createTensor<T>(N, C, H, W, state);
+            data = createTensor<T>(N, C, H, W, state, fillval);
         }
 
         ~Tensor(){
@@ -171,6 +173,10 @@ namespace tensor{
             assert(n<N && c<C);
             return &data[n*(C*H*W) + c*(H*W)];
         }
+
+        void displayShape(std::string tName = ""){
+            std::cout << "Shape of tensor " << tName <<" : (" <<N << ", "<<C<<", "<<H<<", "<<W<<")\n";
+        }
     };
 
   
@@ -180,19 +186,23 @@ namespace tensor{
         // Convolve input tensor X (N,C,H,W) with weights tensor (K, C, R, S)
         // tensor result (N, K, H', W')
         for(int n=0; n<result.N; n++){
+            // std::cout<<"n: "<<n<<"\n";
             for(int c=0;c<result.C;c++){
                 // perform channel-wise convolution between input and output and add to result channel
+                // std::cout<<"\tc: "<<c<<"\n";
                 T* res = result.getMatrix(n, c);
                 for(int xc=0; xc<X.C; xc++){
+                    // std::cout << "\t\txc= "<<xc << "\n";
                     T* mat = X.getMatrix(n, xc);
                     T* wmat = &weights[c*(C*R*S) + xc*(R*S)];
-                    for(int h=0; h<result.H; h++){
-                        for(int w=0; w<result.W; w++){
+                    
+                    // for(int h=0; h<result.H; h++){
+                    //     for(int w=0; w<result.W; w++){
                             // conv adds computed values to res
                             // so output will be correct
-                            conv2D::convolution<T>(res, mat, wmat, X.H, X.W, R, S, mode);
-                        }
-                    }
+                    conv2D::convolution<T>(res, mat, wmat, X.H, X.W, R, S, mode);
+                    //     }
+                    // }
                 }
             }
         }
@@ -215,10 +225,10 @@ namespace cnn {
             char mode;
     
         public:
-            convLayer(int k, int c, int r, int s, char convMode ='s'){
+            convLayer(int k, int c, int r, int s, char convMode ='s', char init='r',int fillval=1){
                 // constructor
                 K = k; C = c; R = r; S = s;
-                weights = tensor::createTensor<T>(K, C, R, S, 'r');
+                weights = tensor::createTensor<T>(K, C, R, S, init, fillval);
                 mode = convMode;
             }   
 
