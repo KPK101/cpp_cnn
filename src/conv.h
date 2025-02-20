@@ -105,7 +105,7 @@ namespace conv2D{
         }
         else {
             std::cout<<"Input convolution mode is not supported! (Please enter s (same) or v(valid))\n";
-            return static_cast<T*>(nullptr);
+            // return;
         }
         convFunc(Y, X, F, x0, x1, f0, f1);
     }   
@@ -146,19 +146,19 @@ namespace tensor{
             int N, C, H, W;
             T* data;
             
-        Tensor(int n, int c, int h, int w){
+        Tensor(int n, int c, int h, int w, int state='z') {
             // constructor
             N = n;
             C = c;
             H = h;
             W = w;
-            data = createTensor<T>(N, C, H, W);
+            data = createTensor<T>(N, C, H, W, state);
         }
 
         ~Tensor(){
-            // destructyor - delete dynamic tensor array 
-            delete(data)
-        };
+            // destructor - delete dynamic tensor array 
+            delete(data);
+        }
 
         T get(int n=0, int c=0, int h=0, int w=0){
             // get value at input coordinates (n,c,h,w)
@@ -261,7 +261,7 @@ namespace cnn {
                 }            
             }
 
-            tensor<T> forward(tensor::Tensor<T> &X, char mode='s'){
+            tensor::Tensor<T> forward(tensor::Tensor<T> &X, char mode='s'){
                 // check if input tensor channels match filter channels
                 validateInputTensor(X.C);
                 tensor::Tensor<T> result(X.N, K, X.H, X.W, 'z');
