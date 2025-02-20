@@ -184,25 +184,18 @@ namespace tensor{
     template<typename T>
     void convTensor(Tensor<T> &result, Tensor<T> &X, T* weights, int K, int C, int R, int S, char mode='s'){
         // Convolve input tensor X (N,C,H,W) with weights tensor (K, C, R, S)
-        // tensor result (N, K, H', W')
+        // tensor result (N, K, H', W'
+        )
         for(int n=0; n<result.N; n++){
-            // std::cout<<"n: "<<n<<"\n";
             for(int c=0;c<result.C;c++){
                 // perform channel-wise convolution between input and output and add to result channel
-                // std::cout<<"\tc: "<<c<<"\n";
                 T* res = result.getMatrix(n, c);
                 for(int xc=0; xc<X.C; xc++){
                     // std::cout << "\t\txc= "<<xc << "\n";
                     T* mat = X.getMatrix(n, xc);
                     T* wmat = &weights[c*(C*R*S) + xc*(R*S)];
-                    
-                    // for(int h=0; h<result.H; h++){
-                    //     for(int w=0; w<result.W; w++){
-                            // conv adds computed values to res
-                            // so output will be correct
                     conv2D::convolution<T>(res, mat, wmat, X.H, X.W, R, S, mode);
-                    //     }
-                    // }
+                
                 }
             }
         }
