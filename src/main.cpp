@@ -23,7 +23,8 @@ int main(){
 	}
 	std::cout << "\n";
 
-	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////	
+	
 	X.displayShape("X");
 	std::cout << "Displaying input of conv:\n\n";
 	for(auto ch=0; ch<c; ch++){

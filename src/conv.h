@@ -148,35 +148,37 @@ namespace tensor{
             int N, C, H, W;
             T* data;
             
-        Tensor(int n, int c, int h, int w, int state='z', int fillval=1) {
-            // constructor
-            N = n;
-            C = c;
-            H = h;
-            W = w;
-            data = createTensor<T>(N, C, H, W, state, fillval);
-        }
+            Tensor() : N(0), C(0), H(0), data(nullptr) {}
+                
+            Tensor(int n, int c, int h, int w, int state='z', int fillval=1) {
+                // constructor
+                N = n;
+                C = c;
+                H = h;
+                W = w;
+                data = createTensor<T>(N, C, H, W, state, fillval);
+            }
 
-        ~Tensor(){
-            // destructor - delete dynamic tensor array 
-            delete(data);
-        }
+            ~Tensor(){
+                // destructor - delete dynamic tensor array 
+                delete(data);
+            }
 
-        T get(int n=0, int c=0, int h=0, int w=0){
-            // get value at input coordinates (n,c,h,w)
-            assert(n<N && c<C && h<H && w<W);
-            return data[n*(C*H*W) + c*(H*W) + h*W + w];
-        }
-        
-        T* getMatrix(int n, int c){
-            // get cth channel of nth tensor (shape = (H,W))
-            assert(n<N && c<C);
-            return &data[n*(C*H*W) + c*(H*W)];
-        }
+            T get(int n=0, int c=0, int h=0, int w=0){
+                // get value at input coordinates (n,c,h,w)
+                assert(n<N && c<C && h<H && w<W);
+                return data[n*(C*H*W) + c*(H*W) + h*W + w];
+            }
+            
+            T* getMatrix(int n, int c){
+                // get cth channel of nth tensor (shape = (H,W))
+                assert(n<N && c<C);
+                return &data[n*(C*H*W) + c*(H*W)];
+            }
 
-        void displayShape(std::string tName = ""){
-            std::cout << "Shape of tensor " << tName <<" : (" <<N << ", "<<C<<", "<<H<<", "<<W<<")\n";
-        }
+            void displayShape(std::string tName = ""){
+                std::cout << "Shape of tensor " << tName <<" : (" <<N << ", "<<C<<", "<<H<<", "<<W<<")\n";
+            }
     };
 
   
@@ -185,7 +187,7 @@ namespace tensor{
     void convTensor(Tensor<T> &result, Tensor<T> &X, T* weights, int K, int C, int R, int S, char mode='s'){
         // Convolve input tensor X (N,C,H,W) with weights tensor (K, C, R, S)
         // tensor result (N, K, H', W')
-        
+
         for(int n=0; n<result.N; n++){
             for(int c=0;c<result.C;c++){
                 // perform channel-wise convolution between input and output and add to result channel
@@ -215,6 +217,7 @@ namespace cnn {
             // define conv layer data members
             int K, C, R, S;
             T* weights;
+            tensor::Tensor<T> W;
             char mode;
     
         public:
@@ -222,12 +225,13 @@ namespace cnn {
                 // constructor
                 K = k; C = c; R = r; S = s;
                 weights = tensor::createTensor<T>(K, C, R, S, init, fillval);
+                // W = tensor::Tensor<T>(K, C, R, S, init, fillval);
                 mode = convMode;
             }   
 
             ~convLayer(){
                 // destructor
-                delete weights;
+                delete[] weights;
             }
 
             T* getWeights(){
@@ -268,7 +272,7 @@ namespace cnn {
                 }            
             }
 
-            tensor::Tensor<T> forward(tensor::Tensor<T> &X, char mode='s'){
+            tensor::Tensor<T> forward(tensor::Tensor<T> &X){
                 // check if input tensor channels match filter channels
                 validateInputTensor(X.C);
                 tensor::Tensor<T> result(X.N, K, X.H, X.W, 'z');
