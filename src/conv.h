@@ -115,11 +115,11 @@ namespace conv2D{
 namespace tensor{
 
     template<typename T>
-    T* createTensor(int N, int C, int H, int W, char state = 'c', int fillval=1){
+    std::unique_ptr<T[]> createTensor(int N, int C, int H, int W, char state = 'c', int fillval=1){
         // create tensor of shape (N, C, H, W)
-        T *tensor;
         size_t size = N*C*H*W;
-        tensor = new T[size];
+        auto tensor = std::make_unique<T[]>(size);
+
         // Initialize with uniform random values
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -146,7 +146,7 @@ namespace tensor{
         public:
             // define tensor data elements
             int N, C, H, W;
-            T* data;
+            std::unique_ptr<T[]> data;
             
             Tensor() : N(0), C(0), H(0), data(nullptr) {}
                 
@@ -161,7 +161,7 @@ namespace tensor{
 
             ~Tensor(){
                 // destructor - delete dynamic tensor array 
-                delete(data);
+                // no need to update as smart pointer was used!
             }
 
             T get(int n=0, int c=0, int h=0, int w=0){
@@ -179,6 +179,26 @@ namespace tensor{
             void displayShape(std::string tName = ""){
                 std::cout << "Shape of tensor " << tName <<" : (" <<N << ", "<<C<<", "<<H<<", "<<W<<")\n";
             }
+
+            void show(std::string tName){
+                displayShape(tName);
+                for(auto n=0; n<N; n++){
+                    std::cout << "batch: "<<n<<"\n\t";
+                    for(auto ch=0; ch<C; ch++){
+                        std::cout << "channel: "<<ch<<"\n\t\t";
+                        T*xmat = getMatrix(n, ch);
+                        for(auto i=0; i<H; i++){
+                            for(auto j=0; j<W; j++){
+                                std::cout << xmat[i*W + j] << " ";
+                            }
+                            std::cout << "\n\t\t";
+                        }
+                        std::cout << "\n\t";
+                    }
+                    std::cout << "\n";
+                }
+                std::cout << "\n";
+            }
     };
 
   
@@ -193,7 +213,6 @@ namespace tensor{
                 // perform channel-wise convolution between input and output and add to result channel
                 T* res = result.getMatrix(n, c);
                 for(int xc=0; xc<X.C; xc++){
-                    // std::cout << "\t\txc= "<<xc << "\n";
                     T* mat = X.getMatrix(n, xc);
                     T* wmat = &weights[c*(C*R*S) + xc*(R*S)];
                     conv2D::convolution<T>(res, mat, wmat, X.H, X.W, R, S, mode);
@@ -216,26 +235,22 @@ namespace cnn {
         private:
             // define conv layer data members
             int K, C, R, S;
-            T* weights;
+            // T* weights;
             tensor::Tensor<T> W;
             char mode;
     
         public:
-            convLayer(int k, int c, int r, int s, char convMode ='s', char init='r',int fillval=1){
-                // constructor
-                K = k; C = c; R = r; S = s;
-                weights = tensor::createTensor<T>(K, C, R, S, init, fillval);
-                // W = tensor::Tensor<T>(K, C, R, S, init, fillval);
-                mode = convMode;
-            }   
+            convLayer(int k, int c, int r, int s, char convMode ='s', char init='r',int fillval=1):
+            K(k), C(c), R(r), S(s), W(K, C, R, S, init, fillval), mode(convMode) 
+            {}   
 
             ~convLayer(){
-                // destructor
-                delete[] weights;
+                // destructor - not required as we use W tensor which uses smart pointers for data 
+                // delete[] weights;
             }
 
             T* getWeights(){
-                return weights;
+                return W.data.get();
             }
 
             void validateInputTensor(int xc){
@@ -279,7 +294,7 @@ namespace cnn {
                 setFWDargs(result, X);
                 // Perform convolutions for each input in batch, for each channel
                 // C channels -> K channels for each batch element
-                tensor::convTensor(result, X, weights, K, C, R, S, mode);
+                tensor::convTensor(result, X, W.data, K, C, R, S, mode);
                 return result;
 
             }
