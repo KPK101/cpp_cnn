@@ -184,8 +184,8 @@ namespace tensor{
     template<typename T>
     void convTensor(Tensor<T> &result, Tensor<T> &X, T* weights, int K, int C, int R, int S, char mode='s'){
         // Convolve input tensor X (N,C,H,W) with weights tensor (K, C, R, S)
-        // tensor result (N, K, H', W'
-        )
+        // tensor result (N, K, H', W')
+        
         for(int n=0; n<result.N; n++){
             for(int c=0;c<result.C;c++){
                 // perform channel-wise convolution between input and output and add to result channel
