@@ -148,8 +148,10 @@ namespace tensor{
             int N, C, H, W;
             std::unique_ptr<T[]> data;
             
+            // Default constructor
             Tensor() : N(0), C(0), H(0), data(nullptr) {}
                 
+            // Parametrized constructor
             Tensor(int n, int c, int h, int w, int state='z', int fillval=1) {
                 // constructor
                 N = n;
@@ -159,10 +161,67 @@ namespace tensor{
                 data = createTensor<T>(N, C, H, W, state, fillval);
             }
 
+            // Copy constructor
+            Tensor(const Tensor &other) : N(other.N), C(other.C), H(other.H), W(other.W){
+
+                size_t size = N*C*H*W;
+                data = std::make_unique<T[]>(size);
+                std::copy(other.data.get(), other.data.get()+size, data.get());
+            }
+
             ~Tensor(){
                 // destructor - delete dynamic tensor array 
                 // no need to update as smart pointer was used!
             }
+
+            // Copy assignment operator
+            Tensor& operator=(const Tensor& other){
+                if(this==&other) return *this;
+
+                N = other.N;
+                C = other.C;
+                H = other.H;
+                W = other.W;
+
+                size_t size = N*C*H*W;
+                data = std::make_unique<T[]>(size);
+                std::copy(other.data.get(), other.data.get()+size, data.get());
+
+                return *this;
+                
+            }
+
+            // move constructor 
+            Tensor(Tensor&& other) noexcept: N(other.N), C(other.C), H(other.H), W(other.W), data(std::move(other.data)){
+                // std::cout << "Move constructor called!\n" ;
+                other.N = 0;
+                other.C = 0;
+                other.H = 0;
+                other.W = 0;
+                other.data = nullptr;
+
+            }
+
+            // move assignment operator
+            Tensor &operator=(Tensor&& other) noexcept{
+                if(this!=&other){
+                    N = other.N;
+                    C = other.C;
+                    H = other.H;
+                    W = other.W;
+                    data = std::move(other.data);
+
+                    // cleanup
+                    other.N = 0;
+                    other.C = 0;
+                    other.H = 0;
+                    other.W = 0;
+                    other.data = nullptr;
+                }
+
+                return *this;
+            }
+
 
             T get(int n=0, int c=0, int h=0, int w=0){
                 // get value at input coordinates (n,c,h,w)
@@ -201,7 +260,7 @@ namespace tensor{
             }
     };
 
-  
+
    
     template<typename T>
     void convTensor(Tensor<T> &result, Tensor<T> &X, T* weights, int K, int C, int R, int S, char mode='s'){
@@ -221,8 +280,8 @@ namespace tensor{
             }
         }
     }
-}
 
+}
 
 
 namespace cnn {
@@ -253,19 +312,19 @@ namespace cnn {
                 return W.data.get();
             }
 
-            void validateInputTensor(int xc){
-                // check if input channels match filter channels 
-                try{
-                    if(xc != C){
-                        std::ostringstream oss;
-                        oss << "Input argument C ("<< xc <<") must match C in conv layer ("<< C <<")";
-                        throw std::invalid_argument(oss.str());
-                    }
-                }catch(const std::exception& e){
-                    std::cout << "Exception caught!" << e.what() << std::endl;
-                }
+            void show(std::string clName){
+                std::cout << "Shape of conv Layer " << clName <<" : (" <<K << ", "<<C<<", "<<R<<", "<<S<<")\n";
+
             }
 
+            void validateInputTensor(int xc){
+                // check if input channels match filter channels 
+                if(xc != C){
+                    std::ostringstream oss;
+                    oss << "Input argument C ("<< xc <<") must match C in conv layer ("<< C <<")";
+                    throw std::invalid_argument(oss.str());               
+               }
+            }
 
             void setFWDargs(tensor::Tensor<T> &result, tensor::Tensor<T> &X){
                 // set forward method arguments
@@ -277,25 +336,33 @@ namespace cnn {
                 }else if(mode=='v'){
                     result.H = X.H - R + 1;
                     result.W = X.W - S + 1;
-                    try{
-                        if(result.H<=0 or result.W<=0){
-                            throw std::invalid_argument("Input matrix is too small for the layer filter size!");
-                        }
-                    }catch(const std::exception& e){
-                        std::cout << "Exception caught!" << e.what() << std::endl;
+                    if(result.H<=0 or result.W<=0){
+                        std::ostringstream oss;
+                        oss << "Invalid output dimensions: H = " << result.H << ", W = " << result.W
+                << ". Input matrix is too small for the layer filter size!";
+                        throw std::invalid_argument(oss.str()); 
                     }
                 }            
             }
 
             tensor::Tensor<T> forward(tensor::Tensor<T> &X){
                 // check if input tensor channels match filter channels
-                validateInputTensor(X.C);
-                tensor::Tensor<T> result(X.N, K, X.H, X.W, 'z');
-                setFWDargs(result, X);
+                tensor::Tensor<T> result;
+                try{
+                    validateInputTensor(X.C);
+                    result = tensor::Tensor<T>(X.N, K, X.H, X.W, 'z');
+                    setFWDargs(result, X);
+                }catch (const std::invalid_argument& e) {
+                    std::cerr << "\nError: " << e.what() << std::endl;
+                    std::exit(1);
+                }catch (const std::exception& e) {
+                    std::cerr << "\nUnexpected error: " << e.what() << std::endl;
+                    std::exit(1);
+                }
                 // Perform convolutions for each input in batch, for each channel
                 // C channels -> K channels for each batch element
-                tensor::convTensor(result, X, W.data, K, C, R, S, mode);
-                return result;
+                tensor::convTensor(result, X, W.data.get(), K, C, R, S, mode);
+                return std::move(result);
 
             }
     };
