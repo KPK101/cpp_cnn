@@ -52,6 +52,7 @@ namespace matrix{
 
 }
 
+
 namespace conv2D{    
     template <typename T>
     void convSame(T*Y, T* X, T* F, int x0, int x1, int f0, int f1){
